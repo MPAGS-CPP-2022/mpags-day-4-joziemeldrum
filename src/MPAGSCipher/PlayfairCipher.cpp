@@ -56,8 +56,6 @@ void PlayfairCipher::setKey(const std::string& key)
     auto rem_duplicates_iter = std::remove_if(key_.begin(), key_.end(), isduplicate);
     key_.erase(rem_duplicates_iter, key_.end());
 
-    std::cout << key_ << std::endl;
-  
     // Store the coords of each letter
 
     // create a label for the coordinate data type:
@@ -87,7 +85,7 @@ void PlayfairCipher::setKey(const std::string& key)
     
 }
 
-std::string PlayfairCipher::applyCipher(const std::string& inputText /*, const CipherMode cipherMode*/ ) const
+std::string PlayfairCipher::applyCipher(const std::string& inputText, const CipherMode cipherMode) const
 {
     size_t text_length{inputText.size()};
 
@@ -101,62 +99,109 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText /*, const C
 
     size_t temp_storage{0}; // temporary storage for when shuffling coordinates later
 
-    // Change J → I
+    // Loop over the input text
+    // 1. Create a digraph
+    // 2. Convert to position
+    // 3. Translate position
+    // 4. Convert back to letter
+    // 5. Append to output text
     for (size_t i{0} ; i < text_length ; i++){
-        //make a digraph
-        // check for J:
-        if (inputText[i] == 'J'){
-            digraph.first = 'I';
-        }
-        else{
+        // Make a digraph
+        // If decryption option, no need to swap letters around
+        if (cipherMode == CipherMode::Encrypt){
             digraph.first = inputText[i];
-        }
-        // second part of digraph could be I, X, Z, or the next letter:
-        // 1. check for J:
-        if (inputText[i+1] == 'J'){
-            digraph.second = 'I';
-            i++;
-        }
-        // 2. check for repeated letter:
-        else if (inputText[i+1] == inputText[i]){
-            digraph.second = 'X';
-        }
-        // 3. check for last character in string
-        else if ( i+1 == text_length){
-            digraph.second = 'Z';
-        }
-        // 4. otherwise just use the next character
-        else {
             digraph.second = inputText[i+1];
             i++;
         }
+        // If encryption mode, need to check for Js, double letters and single end letters
+        else{
+            // check for J:
+            if (inputText[i] == 'J'){
+                digraph.first = 'I';
+            }
+            else{
+                digraph.first = inputText[i];
+            }
+            // second part of digraph could be I, X, Z, or the next letter:
+            // 1. check for J:
+            if (inputText[i+1] == 'J'){
+                digraph.second = 'I';
+                i++;
+            }
+            // 2. check for repeated letter:
+            else if (inputText[i+1] == inputText[i]){
+                digraph.second = 'X';
+            }
+            // 3. check for last character in string
+            else if ( i+1 == text_length){
+                digraph.second = 'Z';
+            }
+            // 4. otherwise just use the next character
+            else {
+                digraph.second = inputText[i+1];
+                i++;
+            }
+        }
 
 
-        // Find the coordinates:
+        // Find the coordinates of this digraph
         coordinates[0] = letterToPosition_.at(digraph.first);
         coordinates[1] = letterToPosition_.at(digraph.second);
 
+        // Translate coordinates according to position
+        if (cipherMode == CipherMode::Encrypt){
+
+            // Option 1 - letters on the same row
+            if (coordinates[0].first == coordinates[1].first){
+                // add one to each coordinate column
+                for (int j{0}; j < 2; j++){
+                    coordinates[j].second++;
+
+                    // check for wrapping:
+                    coordinates[j].second %= 5;
+                }
+            }
+            // Option 2 - letters in same column
+            else if(coordinates[0].second == coordinates[1].second){
+                for (int j{0}; j < 2; j++){
+                    // add one to each coordinate row
+                    coordinates[j].first++;
+
+                    // check for wrapping:
+                    coordinates[j].first %= 5;                 
+                }
+            }
+            // Option 3 - forms a rectangle
+            else{
+                // row of each stay the same
+                // swap column indices of each coord
+                temp_storage = coordinates[0].second;
+                coordinates[0].second = coordinates[1].second;
+                coordinates[1].second = temp_storage;         
+            }
+        }
+        // DECRYPTION MODE
+        else{
         // Option 1 - letters on the same row
         if (coordinates[0].first == coordinates[1].first){
-            // add one to each coordinate column
+            // subtract one to each coordinate column
             for (int j{0}; j < 2; j++){
-                coordinates[j].second++;
-
-                // check for wrapping:
-                if (coordinates[j].second > 5){
-                    coordinates[j].second %= 5;
+                // if coordinate > 0, subtract one, otherwise change to 5
+                if (coordinates[j].second == 0){
+                    coordinates[j].second = 4;                    
+                }else{
+                coordinates[j].second--;
                 }
             }
         }
         // Option 2 - letters in same column
         else if(coordinates[0].second == coordinates[1].second){
             for (int j{0}; j < 2; j++){
-                // add one to each coordinate row
-                coordinates[j].first++;
-
-                // check for wrapping:
-                if (coordinates[j].first > 4){
-                    coordinates[j].first %= 5; //THINK THERE IS A PROBLEM HERE
+                // if coordinate > 0, subtract one, otherwise change to 5
+                if (coordinates[j].first == 0){
+                    coordinates[j].first = 4;                    
+                }else{
+                coordinates[j].first--;
                 }
             }
         }
@@ -168,13 +213,15 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText /*, const C
             coordinates[0].second = coordinates[1].second;
             coordinates[1].second = temp_storage;         
         }
+        }
         
-        // Convert back to text
+        // Convert translated coordinates back to text
         digraph.first = positionToLetter_.at(coordinates[0]);
         digraph.second = positionToLetter_.at(coordinates[1]);
 
         // Add it to the output text
-        outputText += digraph.first + digraph.second;      
+        outputText += digraph.first;
+        outputText += digraph.second;      
     } 
 
 
