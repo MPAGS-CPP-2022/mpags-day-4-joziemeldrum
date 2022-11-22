@@ -35,12 +35,6 @@ class PlayfairCipher {
 
         void setKey(const std::string& key);
 
-        /**
-         * \brief get value of private member variable key_ to check function setKey working while devleoping
-        */
-
-        std::string getKey();
-
 
         /**
          * \brief Apply the cipher to the provided text
@@ -58,8 +52,8 @@ class PlayfairCipher {
         /// The key for the cipher, just a string
         std::string key_{""};
 
-        /// The alphabet - used in creating the key
-        const std::string alphabet_{"ABCDEFGHIJKLMNOPQRSTUVWQXYZ"};
+        /// The alphabet without letter J - used in creating the key
+        const std::string alphabet_{"ABCDEFGHIKLMNOPQRSTUVWQXYZ"};
 
         /// The maps to go between letters and their coordinates on the Playfair cipher grid
         std::map<char, std::pair<size_t, size_t>> letterToPosition_;

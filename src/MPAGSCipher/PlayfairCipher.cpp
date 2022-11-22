@@ -69,9 +69,7 @@ void PlayfairCipher::setKey(const std::string& key)
     SizePair_t coord{ 0, 0 };
 
     for (char letter : alphabet_){
-        if (letter == 'J'){
-            continue;
-            }
+
         key_index = key_.find(letter);
         coord.first = int(key_index/5);
         coord.second = key_index % 5;
@@ -82,7 +80,7 @@ void PlayfairCipher::setKey(const std::string& key)
     // Store maps for later
     letterToPosition_ = letter2coord;
     positionToLetter_ = coord2letter;
-    
+  
 }
 
 std::string PlayfairCipher::applyCipher(const std::string& inputText, const CipherMode cipherMode) const
@@ -107,11 +105,36 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
     // 5. Append to output text
     for (size_t i{0} ; i < text_length ; i++){
         // Make a digraph
-        // If decryption option, no need to swap letters around
-        if (cipherMode == CipherMode::Encrypt){
+        // If decryption option, need to check for bad input - J's and odd number of letters cannot be produced by encryption mode
+        // allow double letters to propogate through with warning as they will be decrypted even though bad input
+        if (cipherMode == CipherMode::Decrypt){
+            // playfair cipher cannot output a J from encryption so if is asked to decrypt one will just skip it?
+            if (inputText[i] == 'J'){
+                std::cerr << "[error] - the letter 'J' not possible output for playfair cipher, \n"
+                          << "          J skipped and added in place to decryption output" << std::endl;
+                outputText += 'J';
+                i++;
+            }
             digraph.first = inputText[i];
+            if (inputText[i+1] == 'J'){
+                std::cerr << "[warning] - the letter 'J' not possible output for playfair cipher, decrpytion won't be true \n"
+                          << "            J skipped and added in place to decryption output" << std::endl;
+                outputText+= 'J';
+                i++;
+            }
+            if (i+1 == text_length){
+                std::cerr << "[warning] - odd number of letters not possible output for playfair cipher, decrpytion won't be true \n"
+                          << "            Z added to end to complete decryption" << std::endl;
+                digraph.second = 'Z';
+            }else{
             digraph.second = inputText[i+1];
+                if (digraph.first == digraph.second){
+                    std::cerr << "[warning] - double letters not possible output for playfair cipher, decrpytion won't be true \n"
+                              << "            decryption will occur with double letters in place" << std::endl;
+
+                }
             i++;
+            }
         }
         // If encryption mode, need to check for Js, double letters and single end letters
         else{
@@ -123,14 +146,14 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
                 digraph.first = inputText[i];
             }
             // second part of digraph could be I, X, Z, or the next letter:
-            // 1. check for J:
-            if (inputText[i+1] == 'J'){
+            // 1. check for repeated letter:
+            if (inputText[i+1] == inputText[i]){
+                digraph.second = 'X';
+            }
+            // 2. check for J:
+            else if (inputText[i+1] == 'J'){
                 digraph.second = 'I';
                 i++;
-            }
-            // 2. check for repeated letter:
-            else if (inputText[i+1] == inputText[i]){
-                digraph.second = 'X';
             }
             // 3. check for last character in string
             else if ( i+1 == text_length){
@@ -147,6 +170,7 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
         // Find the coordinates of this digraph
         coordinates[0] = letterToPosition_.at(digraph.first);
         coordinates[1] = letterToPosition_.at(digraph.second);
+
 
         // Translate coordinates according to position
         if (cipherMode == CipherMode::Encrypt){
@@ -177,7 +201,7 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
                 // swap column indices of each coord
                 temp_storage = coordinates[0].second;
                 coordinates[0].second = coordinates[1].second;
-                coordinates[1].second = temp_storage;         
+                coordinates[1].second = temp_storage;
             }
         }
         // DECRYPTION MODE
@@ -214,7 +238,6 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
             coordinates[1].second = temp_storage;         
         }
         }
-        
         // Convert translated coordinates back to text
         digraph.first = positionToLetter_.at(coordinates[0]);
         digraph.second = positionToLetter_.at(coordinates[1]);
@@ -228,6 +251,3 @@ std::string PlayfairCipher::applyCipher(const std::string& inputText, const Ciph
 return outputText; 
 }
 
-std::string PlayfairCipher::getKey(){
-    return key_;
-}
