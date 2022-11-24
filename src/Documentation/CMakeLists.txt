@@ -2,7 +2,7 @@
 
 # - Doxygen documentation
 # Find an install of Doxygen (we're not too fussy about the version) using CMake's find_package command
-find_package(Doxygen REQUIRED)
+find_package(Doxygen REQUIRED) # = required build will fail if not found
 
 # Configure+Copy Doxygen template file from current source dir to current binary dir
 # '@ONLY' means replace any instances of '@VARIABLE@' in the input file with
@@ -14,15 +14,15 @@ add_custom_command(
   # What this command generates
   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/html/index.html"
   # Actually run doxygen
-  COMMAND ${DOXYGEN_EXECUTABLE}
+  COMMAND ${DOXYGEN_EXECUTABLE} # <- points to executable in system, systm can just find it
   # ... in the same directory as we generated the Doxyfile...
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} # <- where to run it, just here
   # Output requires regeneration when
   # i   - we modify the Doxygen configuration
   # ii  - the sources being documented change
   # iii - any auxillary inputs change
   DEPENDS Doxyfile.in MPAGSCipher ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/CMakeLists.txt
-  # Log that the command is run
+  # Log that the command is run (something output to the screen)
   COMMENT "Doxygenating ${PROJECT_NAME}"
   )
 
@@ -33,7 +33,7 @@ add_custom_target(
   # Name of the target - e.g. in Makefiles we can run 'make doc'
   doc
   # Add this target to the default target - i.e. documentation is
-  # always built when building the whole project
+  # always built when building the whole project (running 'make')
   ALL
   # Make it depend on the output of the custom command
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/html/index.html"
